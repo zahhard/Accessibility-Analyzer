@@ -1,0 +1,1 @@
+export function AppFooter() { return <footer className="mx-auto mt-16 max-w-6xl border-t border-zinc-800 px-5 py-6 text-center text-xs text-zinc-500">تحلیل خودکار، جایگزین ارزیابی کامل و انسانی انطباق با WCAG نیست.</footer>; }

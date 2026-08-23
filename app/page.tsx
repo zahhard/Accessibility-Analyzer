@@ -1,0 +1,8 @@
+import { Braces, Contrast, FormInput, Heading, Image, Keyboard, Link2, ShieldCheck } from "lucide-react";
+import { AppFooter } from "@/components/layout/app-footer";
+import { AppHeader } from "@/components/layout/app-header";
+import { UrlAnalyzerForm } from "@/components/analyzer/url-analyzer-form";
+const checks = [["ساختار HTML معنایی", Braces], ["فرم‌ها و برچسب‌ها", FormInput], ["تصاویر و alt", Image], ["کنتراست رنگ", Contrast], ["ARIA", ShieldCheck], ["Headingها", Heading], ["تعامل کیبورد", Keyboard], ["متن لینک‌ها", Link2]];
+export default function HomePage() {
+  return <><AppHeader /><main className="mx-auto max-w-6xl px-5 pb-10 pt-16"><section className="max-w-3xl"><p className="mb-4 text-sm font-semibold text-violet-400">ارزیابی هوشمند صفحات وب</p><h1 className="text-4xl font-black leading-tight tracking-tight sm:text-6xl">دسترس‌پذیری وب را<br /><span className="text-violet-400">قابل اندازه‌گیری</span> کنید.</h1><p className="mt-6 max-w-2xl text-base leading-8 text-zinc-400">یک URL عمومی وارد کنید تا صفحه با مرورگر واقعی بررسی شود و گزارشی فارسی بر پایه WCAG 2.2 و WAI-ARIA دریافت کنید.</p><UrlAnalyzerForm /></section><section className="mt-24"><h2 className="text-xl font-bold">ابزار چه مواردی را بررسی می‌کند؟</h2><div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">{checks.map(([label, Icon]) => { const IconComponent = Icon as typeof Braces; return <div key={label as string} className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-4"><IconComponent className="mb-4 text-violet-400" size={20} /><p className="text-sm text-zinc-300">{label as string}</p></div>; })}</div></section></main><AppFooter /></>;
+}
