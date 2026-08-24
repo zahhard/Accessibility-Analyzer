@@ -1,0 +1,4 @@
+import type { AnalysisReport } from "@/lib/analyzer/types";
+export function ScoreCard({ report }: { report: AnalysisReport }) {
+  return <section className="rounded-2xl border border-zinc-800 bg-zinc-900 p-6"><p className="text-sm text-zinc-500">امتیاز پیشنهادی</p><div className="mt-3 flex items-end gap-3"><span className="text-7xl font-black text-violet-400">{report.score}</span><span className="mb-3 text-zinc-500">از ۱۰۰</span></div><p className="mt-3 text-lg font-bold">{report.scoreLabel}</p><div className="mt-5 h-3 overflow-hidden rounded-full bg-zinc-800"><div className="h-full rounded-full bg-violet-500" style={{ width: `${report.score}%` }} /></div><p className="mt-5 text-sm leading-7 text-zinc-500">این امتیاز برای اولویت‌بندی اصلاحات است و جایگزین ارزیابی انسانی کامل WCAG نمی‌شود.</p></section>;
+}

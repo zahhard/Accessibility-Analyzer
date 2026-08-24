@@ -1,0 +1,4 @@
+import { AlertCircle, CircleAlert, Info, ShieldAlert } from "lucide-react";
+import type { AnalysisReport, Severity } from "@/lib/analyzer/types";
+const items: [Severity, string, typeof AlertCircle, string][] = [["critical", "بحرانی", ShieldAlert, "text-red-400"], ["serious", "جدی", AlertCircle, "text-orange-400"], ["moderate", "متوسط", CircleAlert, "text-yellow-400"], ["minor", "جزئی", Info, "text-blue-400"]];
+export function SummaryCards({ report }: { report: AnalysisReport }) { return <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{items.map(([severity, label, Icon, color]) => <div key={severity} className="rounded-xl border border-zinc-800 bg-zinc-900 p-4"><Icon size={18} className={color} /><p className="mt-3 text-xs text-zinc-500">{label}</p><p className="mt-1 text-2xl font-black">{report.summary[severity]}</p></div>)}</div>; }
