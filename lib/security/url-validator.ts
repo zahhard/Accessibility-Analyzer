@@ -3,7 +3,10 @@ import dns from "node:dns/promises";
 import net from "node:net";
 import { z } from "zod";
 
-export const urlSchema = z.object({ url: z.string().trim().min(1).max(2048).url() });
+export const urlSchema = z.object({
+  url: z.string().trim().min(1).max(2048).url(),
+  viewportIds: z.array(z.enum(["mobile", "tablet", "desktop"])).min(1).max(3).optional().default(["desktop"]),
+});
 const localHosts = new Set(["localhost", "localhost.localdomain", "0.0.0.0", "::1"]);
 
 function privateIp(ip: string): boolean {
