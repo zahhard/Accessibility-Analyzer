@@ -1,1 +1,1 @@
-export function AppFooter() { return <footer className="border-t border-zinc-800 py-8 text-center text-xs text-zinc-600">این ابزار جایگزین ارزیابی کامل و انسانی WCAG نیست.</footer>; }
+export function AppFooter() { return <footer className="border-t border-slate-200 bg-white/50 py-10 text-center text-xs text-slate-500">یک بررسی خودکار، شروع مسیر است — نه جایگزین ارزیابی کامل و انسانی WCAG.</footer>; }

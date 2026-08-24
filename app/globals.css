@@ -1,10 +1,13 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-:root { color-scheme: dark; }
+:root { color-scheme: light; --ink: #f8fafc; --panel: #ffffff; --panel-soft: #f1f5f9; --line: #e2e8f0; --brand: #0f766e; --brand-strong: #115e59; --brand-soft: #ccfbf1; }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
-body { margin: 0; background: #09090b; color: #fafafa; font-family: Arial, sans-serif; }
+body { margin: 0; background: var(--ink); color: #172033; font-family: Arial, sans-serif; }
+body::before { content: ""; position: fixed; inset: 0; pointer-events: none; background: radial-gradient(circle at 84% -10%, rgba(45, 212, 191, .16), transparent 27rem), radial-gradient(circle at 7% 32%, rgba(191, 219, 254, .35), transparent 24rem); }
 .ltr { direction: ltr; }
-.focus-ring:focus-visible { outline: 3px solid #a78bfa; outline-offset: 3px; }
+.focus-ring:focus-visible { outline: 3px solid #14b8a6; outline-offset: 3px; }
+.surface { background: rgba(255,255,255,.92); border: 1px solid var(--line); box-shadow: 0 12px 30px rgba(15, 23, 42, .06); }
+.eyebrow { letter-spacing: .12em; text-transform: uppercase; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
