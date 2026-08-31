@@ -7,3 +7,5 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   if (!job) return NextResponse.json({ error: { code: "NOT_FOUND", message: "خروجی موردنظر یافت نشد." } }, { status: 404 });
   return NextResponse.json({ exportId: job.id, format: job.format, status: job.status, progress: job.progress, downloadUrl: job.status === "ready" ? `/api/exports/${job.id}/download` : undefined, error: job.errorMessage ?? undefined });
 }
+
+
