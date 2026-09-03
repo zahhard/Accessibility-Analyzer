@@ -21,34 +21,63 @@ export interface ExportJob {
   expiresAt: Date;
 }
 
-interface AnalysisRecord { report: AnalysisReport; ownerKey: string; expiresAt: Date }
+interface AnalysisRecord {
+  report: AnalysisReport;
+  ownerKey: string;
+  expiresAt: Date;
+}
 const analyses = new Map<string, AnalysisRecord>();
 const exportsById = new Map<string, ExportJob>();
 
 function removeExpired() {
   const now = Date.now();
-  for (const [id, record] of analyses) if (record.expiresAt.getTime() <= now) analyses.delete(id);
-  for (const [id, job] of exportsById) if (job.expiresAt.getTime() <= now) exportsById.set(id, { ...job, status: "expired", content: null });
+  for (const [id, record] of analyses)
+    if (record.expiresAt.getTime() <= now) analyses.delete(id);
+  for (const [id, job] of exportsById)
+    if (job.expiresAt.getTime() <= now)
+      exportsById.set(id, { ...job, status: "expired", content: null });
 }
 
 export function createAnalysisRecord(report: AnalysisReport, ownerKey: string) {
   removeExpired();
-  analyses.set(report.analysisId, { report, ownerKey, expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) });
+  analyses.set(report.analysisId, {
+    report,
+    ownerKey,
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+  });
 }
 
-export function getOwnedAnalysis(analysisId: string, ownerKey: string | undefined): AnalysisReport | null {
+export function getOwnedAnalysis(
+  analysisId: string,
+  ownerKey: string | undefined,
+): AnalysisReport | null {
   removeExpired();
   const record = analyses.get(analysisId);
-  return record && ownerKey && record.ownerKey === ownerKey ? record.report : null;
+  return record && ownerKey && record.ownerKey === ownerKey
+    ? record.report
+    : null;
 }
 
-export function getReusableExport(analysisId: string, ownerKey: string, format: ExportFormat): ExportJob | null {
+export function getReusableExport(
+  analysisId: string,
+  ownerKey: string,
+  format: ExportFormat,
+): ExportJob | null {
   removeExpired();
-  for (const job of exportsById.values()) if (job.analysisId === analysisId && job.ownerKey === ownerKey && job.format === format && (job.status === "ready" || job.status === "processing")) return job;
+  for (const job of exportsById.values())
+    if (
+      job.analysisId === analysisId &&
+      job.ownerKey === ownerKey &&
+      job.format === format &&
+      (job.status === "ready" || job.status === "processing")
+    )
+      return job;
   return null;
 }
 
-export function saveExport(job: ExportJob) { exportsById.set(job.id, job); }
+export function saveExport(job: ExportJob) {
+  exportsById.set(job.id, job);
+}
 
 export function updateExport(id: string, update: Partial<ExportJob>) {
   const job = exportsById.get(id);
@@ -58,7 +87,10 @@ export function updateExport(id: string, update: Partial<ExportJob>) {
   return next;
 }
 
-export function getOwnedExport(exportId: string, ownerKey: string | undefined): ExportJob | null {
+export function getOwnedExport(
+  exportId: string,
+  ownerKey: string | undefined,
+): ExportJob | null {
   removeExpired();
   const job = exportsById.get(exportId);
   return job && ownerKey && job.ownerKey === ownerKey ? job : null;

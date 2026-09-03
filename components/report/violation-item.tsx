@@ -3,7 +3,85 @@ import { Check, ChevronDown, Copy } from "lucide-react";
 import { useState } from "react";
 import type { AnalyzerViolation } from "@/lib/analyzer/types";
 export function ViolationItem({ violation }: { violation: AnalyzerViolation }) {
-  const [open, setOpen] = useState(false); const [copied, setCopied] = useState(false);
-  const copy = async (value: string) => { await navigator.clipboard?.writeText(value); setCopied(true); setTimeout(() => setCopied(false), 1200); };
-  return <article className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-teal-200 hover:shadow-md"><button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="focus-ring flex w-full items-center justify-between gap-4 p-5 text-right transition hover:bg-slate-50"><span><span className="block font-bold text-slate-900">{violation.title}</span><span className="mt-2 block text-xs text-slate-500">{violation.id} · {violation.source} · {violation.impact}</span></span><ChevronDown className={`shrink-0 text-slate-400 transition ${open ? "rotate-180 text-teal-700" : ""}`} size={18} /></button>{open && <div className="border-t border-slate-100 bg-white p-5 text-sm leading-7 text-slate-600"><p>{violation.description}</p><p className="mt-3 font-medium text-teal-700">راهکار: {violation.fixSuggestion}</p>{violation.wcag.length > 0 && <p className="mt-2 text-slate-500">WCAG: {violation.wcag.join("، ")}</p>}<div className="mt-4 space-y-3">{violation.nodes.map((node, index) => <div key={`${node.target.join("-")}-${index}`} className="rounded-lg border border-slate-200 bg-slate-50 p-3"><div className="flex items-center justify-between gap-3"><code className="ltr break-all text-xs text-teal-700">{node.target.join(", ")}</code><button type="button" aria-label="کپی HTML" onClick={() => copy(node.html)} className="focus-ring shrink-0 rounded bg-white p-1 text-slate-400 shadow-sm transition hover:text-teal-700">{copied ? <Check size={15} /> : <Copy size={15} />}</button></div><pre className="ltr mt-2 max-h-28 overflow-auto whitespace-pre-wrap break-all rounded bg-white p-2 text-xs text-slate-600">{node.html}</pre><p className="mt-2 text-xs text-slate-500">{node.failureSummary}</p></div>)}</div>{violation.helpUrl && <a className="mt-4 inline-block text-teal-700 underline underline-offset-2" href={violation.helpUrl} target="_blank" rel="noopener noreferrer">مرجع راهنما</a>}</div>}</article>;
+  const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const copy = async (value: string) => {
+    await navigator.clipboard?.writeText(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1200);
+  };
+  return (
+    <article className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-teal-200 hover:shadow-md">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        className="focus-ring flex w-full items-center justify-between gap-4 p-5 text-right transition hover:bg-slate-50"
+      >
+        <span>
+          <span className="block font-bold text-slate-900">
+            {violation.title}
+          </span>
+          <span className="mt-2 block text-xs text-slate-500">
+            {violation.id} · {violation.source} · {violation.impact}
+          </span>
+        </span>
+        <ChevronDown
+          className={`shrink-0 text-slate-400 transition ${open ? "rotate-180 text-teal-700" : ""}`}
+          size={18}
+        />
+      </button>
+      {open && (
+        <div className="border-t border-slate-100 bg-white p-5 text-sm leading-7 text-slate-600">
+          <p>{violation.description}</p>
+          <p className="mt-3 font-medium text-teal-700">
+            راهکار: {violation.fixSuggestion}
+          </p>
+          {violation.wcag.length > 0 && (
+            <p className="mt-2 text-slate-500">
+              WCAG: {violation.wcag.join("، ")}
+            </p>
+          )}
+          <div className="mt-4 space-y-3">
+            {violation.nodes.map((node, index) => (
+              <div
+                key={`${node.target.join("-")}-${index}`}
+                className="rounded-lg border border-slate-200 bg-slate-50 p-3"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <code className="ltr break-all text-xs text-teal-700">
+                    {node.target.join(", ")}
+                  </code>
+                  <button
+                    type="button"
+                    aria-label="کپی HTML"
+                    onClick={() => copy(node.html)}
+                    className="focus-ring shrink-0 rounded bg-white p-1 text-slate-400 shadow-sm transition hover:text-teal-700"
+                  >
+                    {copied ? <Check size={15} /> : <Copy size={15} />}
+                  </button>
+                </div>
+                <pre className="ltr mt-2 max-h-28 overflow-auto whitespace-pre-wrap break-all rounded bg-white p-2 text-xs text-slate-600">
+                  {node.html}
+                </pre>
+                <p className="mt-2 text-xs text-slate-500">
+                  {node.failureSummary}
+                </p>
+              </div>
+            ))}
+          </div>
+          {violation.helpUrl && (
+            <a
+              className="mt-4 inline-block text-teal-700 underline underline-offset-2"
+              href={violation.helpUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              مرجع راهنما
+            </a>
+          )}
+        </div>
+      )}
+    </article>
+  );
 }

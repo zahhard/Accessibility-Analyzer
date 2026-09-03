@@ -32,6 +32,7 @@
     "@types/react-dom": "^19.0.4",
     "eslint": "^9.22.0",
     "eslint-config-next": "^15.3.1",
+    "prettier": "^3.9.6",
     "typescript": "^5.8.3"
   }
 }

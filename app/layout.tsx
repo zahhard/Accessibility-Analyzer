@@ -10,7 +10,18 @@ const peyda = localFont({
   variable: "--font-peyda",
 });
 
-export const metadata: Metadata = { title: "تحلیلگر دسترس‌پذیری وب", description: "تحلیل خودکار اولیه دسترس‌پذیری صفحات عمومی وب" };
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="fa" dir="rtl"><body className={peyda.variable}><Providers>{children}</Providers></body></html>;
+export const metadata: Metadata = {
+  title: "تحلیلگر دسترس‌پذیری وب",
+  description: "تحلیل خودکار اولیه دسترس‌پذیری صفحات عمومی وب",
+};
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
+  return (
+    <html lang="fa" dir="rtl">
+      <body className={peyda.variable}>
+        <Providers>{children}</Providers>
+      </body>
+    </html>
+  );
 }

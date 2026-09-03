@@ -4,7 +4,11 @@ import type { AnalyzeRequest, AnalyzeResponse } from "@/types/api";
 export function useAnalysisReport() {
   return useMutation({
     mutationFn: async (input: AnalyzeRequest) => {
-      const response = await fetch("/api/analyze", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input) });
+      const response = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(input),
+      });
       const result = (await response.json()) as AnalyzeResponse;
       if (!result.success) throw new Error(result.error.message);
       return result.data;

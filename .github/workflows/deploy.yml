@@ -1,0 +1,51 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 20
+    steps:
+      - name: Configure SSH
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT }}
+          SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          port="${SERVER_PORT:-22}"
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SERVER_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "$port" -H "$SERVER_HOST" >> ~/.ssh/known_hosts
+
+      - name: Deploy current main branch
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          APP_PATH: ${{ vars.APP_PATH }}
+        run: |
+          set -euo pipefail
+          port="${SERVER_PORT:-22}"
+          app_path="${APP_PATH:-/opt/accessibility-analyzer}"
+          ssh -i ~/.ssh/deploy_key -p "$port" "$SERVER_USER@$SERVER_HOST" \
+            bash -s -- "$app_path" <<'REMOTE'
+          set -euo pipefail
+          cd "$1"
+          git fetch origin main
+          git checkout main
+          git pull --ff-only origin main
+          docker compose up -d --build --remove-orphans
+          docker compose ps
+          REMOTE
