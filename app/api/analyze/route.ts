@@ -7,6 +7,7 @@ import { buildReport } from "@/lib/analyzer/violation-mapper";
 import { viewportDefinitions } from "@/lib/analyzer/types";
 import type {
   AnalyzerViolation,
+  AnalyzerPass,
   ViewportId,
   ViewportReport,
 } from "@/lib/analyzer/types";
@@ -18,20 +19,64 @@ import { randomUUID } from "node:crypto";
 
 export const runtime = "nodejs";
 export const maxDuration = 45;
-function errorResponse(code: ApiErrorCode, message: string, status: number) {
+function errorResponse(
+  code: ApiErrorCode,
+  message: string,
+  status: number,
+  details?: string,
+) {
   return NextResponse.json<AnalyzeResponse>(
-    { success: false, error: { code, message } },
+    { success: false, error: { code, message, ...(details ? { details } : {}) } },
     { status },
   );
 }
-function browserPath() {
+
+function errorDetails(error: unknown) {
+  if (!(error instanceof Error)) return "خطای ناشناخته در سرویس تحلیل رخ داد.";
+  const message = error.message.toLowerCase();
+  if (message.includes("timeout"))
+    return "زمان انتظار برای بارگذاری صفحه تمام شد. ممکن است سایت کند باشد یا پاسخ ندهد.";
+  if (message.includes("econnreset") || message.includes("connection reset"))
+    return "ارتباط با سایت در میانه‌ی بارگذاری قطع شد.";
+  if (message.includes("enotfound") || message.includes("name_not_resolved"))
+    return "دامنه‌ی سایت پیدا نشد. آدرس و وضعیت DNS را بررسی کنید.";
+  if (message.includes("ssl") || message.includes("certificate"))
+    return "گواهی امنیتی سایت معتبر نیست یا اتصال HTTPS برقرار نشد.";
+  if (message.includes("net::err"))
+    return `مرورگر نتوانست صفحه را بارگذاری کند (${error.message}).`;
+  return `مرورگر هنگام بارگذاری صفحه خطا داد (${error.message}).`;
+}
+function browserPaths() {
   const configured = process.env.CHROME_PATH?.trim();
-  if (configured) return configured;
+  if (configured) return [configured];
   return [
+    undefined,
     "/usr/bin/google-chrome",
     "/usr/bin/chromium",
     "/usr/bin/chromium-browser",
-  ].find(existsSync);
+  ].filter((path) => path === undefined || existsSync(path));
+}
+
+async function launchBrowser() {
+  let lastError: unknown;
+  for (const executablePath of browserPaths()) {
+    try {
+      return await chromium.launch({
+        headless: true,
+        ...(executablePath ? { executablePath } : {}),
+        args: [
+          "--no-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-crashpad",
+        ],
+      });
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("No usable Chromium executable was found.");
 }
 
 export async function POST(request: NextRequest) {
@@ -53,11 +98,7 @@ export async function POST(request: NextRequest) {
       return errorResponse("INVALID_URL", "آدرس واردشده معتبر نیست.", 400);
     const validated = await validatePublicUrl(parsed.data.url);
     try {
-      browser = await chromium.launch({
-        headless: true,
-        executablePath: browserPath(),
-        args: ["--no-sandbox", "--disable-dev-shm-usage"],
-      });
+      browser = await launchBrowser();
     } catch (error) {
       console.error("browser_launch_failed", {
         duration: Date.now() - started,
@@ -67,10 +108,12 @@ export async function POST(request: NextRequest) {
         "ANALYSIS_FAILED",
         "تحلیل با خطای غیرمنتظره مواجه شد.",
         500,
+        "مرورگر تحلیل قابل راه‌اندازی نیست. گزارش سرور: " + errorDetails(error),
       );
     }
     const analysisId = `ana_${randomUUID()}`;
     const violations: AnalyzerViolation[] = [];
+    const positivePoints: AnalyzerPass[] = [];
     const viewportReports: ViewportReport[] = [];
     let pageTitle = "";
     let finalUrl = validated.toString();
@@ -88,10 +131,21 @@ export async function POST(request: NextRequest) {
       try {
         const page = await context.newPage();
         page.setDefaultTimeout(30_000);
-        const loaded = await page.goto(validated.toString(), {
-          waitUntil: "domcontentloaded",
-          timeout: 30_000,
-        });
+        let loaded;
+        try {
+          loaded = await page.goto(validated.toString(), {
+            waitUntil: "domcontentloaded",
+            timeout: 30_000,
+          });
+        } catch (error) {
+          console.error("page_load_failed", { viewportId, error });
+          return errorResponse(
+            "PAGE_LOAD_FAILED",
+            "بارگذاری صفحه با خطا مواجه شد.",
+            502,
+            errorDetails(error),
+          );
+        }
         const redirectedUrl = new URL(page.url());
         await validatePublicUrl(redirectedUrl.toString());
         if (
@@ -109,11 +163,14 @@ export async function POST(request: NextRequest) {
         const custom = await runCustomRules(page);
         let axe: {
           violations: AnalyzerViolation[];
+          positivePoints: AnalyzerPass[];
           passesCount: number;
           incompleteCount: number;
-        } = { violations: [], passesCount: 0, incompleteCount: 1 };
+        } = { violations: [], positivePoints: [], passesCount: 0, incompleteCount: 1 };
         try {
           axe = await runAxe(page);
+          console.log("axe", axe);
+          
         } catch (error) {
           console.error("axe_failed", {
             duration: Date.now() - started,
@@ -121,18 +178,29 @@ export async function POST(request: NextRequest) {
             error,
           });
         }
-        const viewportViolations = [...axe.violations, ...custom].map(
+        const viewportViolations = [...axe.violations, ...custom.violations].map(
           (violation) => ({ ...violation, viewportId }),
         );
+        const viewportPositivePoints = [
+          ...axe.positivePoints,
+          ...custom.positivePoints,
+        ].map((point) => ({
+          ...point,
+          viewportId,
+        }));
         const viewportReport = buildReport(
           analysisId,
           redirectedUrl.toString(),
           await page.title(),
           viewportViolations,
+          viewportPositivePoints,
           axe.passesCount,
           axe.incompleteCount,
         );
+        console.log("viewportReport", viewportReport);
+        
         violations.push(...viewportViolations);
+        positivePoints.push(...viewportPositivePoints);
         viewportReports.push({
           viewport,
           score: viewportReport.score,
@@ -154,6 +222,7 @@ export async function POST(request: NextRequest) {
       finalUrl,
       pageTitle,
       violations,
+      positivePoints,
       passesCount,
       incompleteCount,
       viewportReports,
@@ -183,6 +252,7 @@ export async function POST(request: NextRequest) {
         ? "این آدرس به دلایل امنیتی قابل تحلیل نیست."
         : "بارگذاری صفحه با خطا مواجه شد.",
       blocked ? 400 : 502,
+      blocked ? "آدرس یا یکی از تغییرمسیرهای آن به یک مقصد داخلی یا غیرمجاز اشاره می‌کند." : errorDetails(error),
     );
   } finally {
     await browser?.close();

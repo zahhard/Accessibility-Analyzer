@@ -19,6 +19,12 @@ const localHosts = new Set([
   "::1",
 ]);
 
+function privateUrlsEnabled() {
+  return !["0", "false", "no"].includes(
+    (process.env.ALLOW_PRIVATE_URLS ?? "true").trim().toLowerCase(),
+  );
+}
+
 function privateIp(ip: string): boolean {
   const version = net.isIP(ip);
   if (version === 4) {
@@ -52,15 +58,24 @@ function privateIp(ip: string): boolean {
 
 export async function validatePublicUrl(raw: string): Promise<URL> {
   const parsed = new URL(raw);
+  const allowPrivateUrls = privateUrlsEnabled();
+  const hostname = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, "");
   if (
     !["http:", "https:"].includes(parsed.protocol) ||
     parsed.username ||
     parsed.password ||
-    parsed.hostname.length > 253 ||
-    localHosts.has(parsed.hostname.toLowerCase()) ||
-    (net.isIP(parsed.hostname) > 0 && privateIp(parsed.hostname))
+    hostname.length > 253 ||
+    (!allowPrivateUrls &&
+      (localHosts.has(hostname) ||
+        (net.isIP(hostname) > 0 && privateIp(hostname))))
   )
     throw new Error("BLOCKED_URL");
+
+  // Private/localhost targets are useful when the analyzer itself runs in the
+  // same trusted environment as the application being tested. DNS checks are
+  // intentionally skipped only behind the explicit opt-in flag.
+  if (allowPrivateUrls) return parsed;
+
   const records = await dns.lookup(parsed.hostname, {
     all: true,
     verbatim: true,

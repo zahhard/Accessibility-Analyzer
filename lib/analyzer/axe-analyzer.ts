@@ -1,7 +1,17 @@
 import "server-only";
 import { AxeBuilder } from "@axe-core/playwright";
 import type { Page } from "playwright";
-import type { AnalyzerViolation, Severity } from "./types";
+import type { AnalyzerPass, AnalyzerViolation, Severity } from "./types";
+
+function wcagTags(tags: string[]) {
+  return tags
+    .filter((tag) => tag.startsWith("wcag"))
+    .map((tag) => {
+      const match = tag.match(/^wcag(\d)(\d)(\d)$/);
+      return match ? `${match[1]}.${match[2]}.${match[3]}` : tag;
+    });
+}
+
 export async function runAxe(page: Page) {
   const result = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
@@ -10,9 +20,7 @@ export async function runAxe(page: Page) {
     id: item.id,
     source: "axe-core",
     impact: (item.impact ?? "moderate") as Severity,
-    wcag: item.tags
-      .filter((tag) => /^\d+\.\d+(\.\d+)?$/.test(tag))
-      .map((tag) => tag.replace("wcag", "")),
+    wcag: wcagTags(item.tags),
     title: item.help,
     description: item.description,
     help: item.help,
@@ -25,8 +33,17 @@ export async function runAxe(page: Page) {
     })),
     fixSuggestion: item.help,
   }));
+  const positivePoints: AnalyzerPass[] = result.passes.map((item) => ({
+    id: item.id,
+    source: "axe-core",
+    wcag: wcagTags(item.tags),
+    title: item.help,
+    description: item.description,
+    helpUrl: item.helpUrl,
+  }));
   return {
     violations,
+    positivePoints,
     passesCount: result.passes.length,
     incompleteCount: result.incomplete.length,
   };

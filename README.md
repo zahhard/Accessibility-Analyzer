@@ -44,9 +44,27 @@ npm start
 
 کدهای خطا شامل `INVALID_URL`، `BLOCKED_URL`، `RATE_LIMITED`، `PAGE_LOAD_FAILED`، `ANALYSIS_TIMEOUT` و `ANALYSIS_FAILED` هستند. جزئیات داخلی فقط در log سرور ثبت می‌شوند.
 
+## تحلیل URLهای لوکال و خصوصی
+
+URLهای لوکال و خصوصی به‌صورت پیش‌فرض قابل تحلیل هستند؛ بنابراین آدرس‌هایی مثل `http://localhost:3001`، `http://127.0.0.1:3001` یا سرویس‌های شبکه داخلی مستقیماً پذیرفته می‌شوند.
+
+برای غیرفعال‌کردن تحلیل مقصدهای خصوصی:
+
+```bash
+ALLOW_PRIVATE_URLS=false npm run dev
+```
+
+در Docker:
+
+```bash
+ALLOW_PRIVATE_URLS=false docker compose up -d --build
+```
+
+اگر برنامه‌ی موردنظر روی سیستم میزبان و تحلیل‌گر داخل Docker اجرا می‌شود، به‌جای `localhost` از `http://host.docker.internal:PORT` استفاده کنید. فعال‌کردن این گزینه روی یک سرویس عمومی خطر SSRF دارد و فقط برای محیط محلی یا شبکه‌ی کاملاً کنترل‌شده توصیه می‌شود.
+
 ## محدودیت‌ها و امنیت
 
-فقط URLهای عمومی HTTP/HTTPS مجازند. localhost، IPهای خصوصی، loopback، link-local، multicast، unspecified، username/password و مقصدهای DNS خصوصی رد می‌شوند. تحلیل خودکار نمی‌تواند قضاوت انسانی درباره معنای alt، تجربه شناختی، همه رفتارهای keyboard یا انطباق نهایی را جایگزین کند.
+URLهای HTTP/HTTPS مجازند و مقصدهای خصوصی نیز به‌صورت پیش‌فرض پذیرفته می‌شوند. با `ALLOW_PRIVATE_URLS=false`، localhost، IPهای خصوصی، loopback، link-local، multicast، unspecified و مقصدهای DNS خصوصی رد می‌شوند. username/password همچنان در URL مجاز نیست. تحلیل خودکار نمی‌تواند قضاوت انسانی درباره معنای alt، تجربه شناختی، همه رفتارهای keyboard یا انطباق نهایی را جایگزین کند.
 
 rate limit فعلی برای MVP حافظه‌ای است و برای multi-instance production کافی نیست؛ در production باید Redis یا store توزیع‌شده جایگزین شود. از تحلیل سامانه‌های خصوصی یا بدون اجازه خودداری کنید.
 
@@ -61,6 +79,8 @@ git clone https://github.com/zahhard/Accessibility-Analyzer.git /opt/accessibili
 cd /opt/accessibility-analyzer
 docker compose up -d --build
 ```
+
+برای resolve دامنه‌های عمومی، سرویس Docker از DNSهای `1.1.1.1` و `8.8.8.8` استفاده می‌کند. اگر فایروال سرور دسترسی DNS روی پورت ۵۳ را مسدود کرده است، ابتدا آن را باز کنید.
 
 سپس در `Settings > Secrets and variables > Actions` مخزن GitHub، این Repository Secretها را بسازید:
 

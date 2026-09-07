@@ -8,5 +8,11 @@ services:
     shm_size: 1gb
     ports:
       - "127.0.0.1:3000:3000"
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     environment:
       NODE_ENV: production
+      ALLOW_PRIVATE_URLS: ${ALLOW_PRIVATE_URLS:-true}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

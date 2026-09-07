@@ -1,6 +1,7 @@
 import type {
   AnalysisReport,
   AnalyzerViolation,
+  AnalyzerPass,
   Severity,
   ViewportReport,
 } from "./types";
@@ -10,6 +11,7 @@ export function buildReport(
   url: string,
   pageTitle: string,
   violations: AnalyzerViolation[],
+  positivePoints: AnalyzerPass[],
   passesCount: number,
   incompleteCount: number,
   viewportReports: ViewportReport[] = [],
@@ -36,6 +38,7 @@ export function buildReport(
     ...calculateScore(violations),
     summary: { ...summary, totalIssues: violations.length },
     violations,
+    positivePoints,
     passesCount,
     incompleteCount,
     viewportReports,

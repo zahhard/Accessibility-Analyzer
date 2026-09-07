@@ -11,14 +11,25 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import * as yup from "yup";
-import { useAnalysisReport } from "@/hooks/use-analysis-report";
+import {
+  AnalysisRequestError,
+  useAnalysisReport,
+} from "@/hooks/use-analysis-report";
 import { AnalysisProgress } from "./analysis-progress";
 import { SampleUrls } from "./sample-urls";
 import type { ViewportId } from "@/lib/analyzer/types";
 const schema = yup.object({
   url: yup
     .string()
-    .url("یک URL معتبر وارد کنید.")
+    .test("url", "یک URL معتبر وارد کنید.", (value) => {
+      if (!value) return false;
+      try {
+        const parsed = new URL(value);
+        return ["http:", "https:"].includes(parsed.protocol);
+      } catch {
+        return false;
+      }
+    })
     .required("وارد کردن URL الزامی است."),
 });
 type FormValues = yup.InferType<typeof schema>;
@@ -123,7 +134,23 @@ export function UrlAnalyzerForm() {
           role="alert"
           className="mt-5 break-words rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
         >
-          {mutation.error.message}
+          <>
+            <p className="font-bold">{mutation.error.message}</p>
+            {mutation.error instanceof AnalysisRequestError && (
+              <div className="mt-3 space-y-1 text-xs leading-6 text-red-800">
+                <p>
+                  <span className="font-bold">کد خطا:</span>{" "}
+                  <code dir="ltr">{mutation.error.code}</code>
+                </p>
+                {mutation.error.details && (
+                  <p>
+                    <span className="font-bold">جزئیات:</span>{" "}
+                    {mutation.error.details}
+                  </p>
+                )}
+              </div>
+            )}
+          </>
         </div>
       )}
       {mutation.isPending && <AnalysisProgress />}

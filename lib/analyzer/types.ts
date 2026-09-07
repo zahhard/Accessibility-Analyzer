@@ -30,6 +30,15 @@ export interface AnalyzerViolation {
   fixSuggestion: string;
   viewportId?: ViewportId;
 }
+export interface AnalyzerPass {
+  id: string;
+  source: ViolationSource;
+  wcag: string[];
+  title: string;
+  description: string;
+  helpUrl?: string;
+  viewportId?: ViewportId;
+}
 export interface AnalysisSummary {
   totalIssues: number;
   critical: number;
@@ -54,6 +63,7 @@ export interface AnalysisReport {
   scoreLabel: string;
   summary: AnalysisSummary;
   violations: AnalyzerViolation[];
+  positivePoints: AnalyzerPass[];
   passesCount: number;
   incompleteCount: number;
   viewportReports: ViewportReport[];

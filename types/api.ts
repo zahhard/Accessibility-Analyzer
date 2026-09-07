@@ -9,7 +9,10 @@ export type ApiErrorCode =
   | "INTERNAL_ERROR";
 export type AnalyzeResponse =
   | { success: true; data: AnalysisReport }
-  | { success: false; error: { code: ApiErrorCode; message: string } };
+  | {
+      success: false;
+      error: { code: ApiErrorCode; message: string; details?: string };
+    };
 export interface AnalyzeRequest {
   url: string;
   viewportIds: ViewportId[];

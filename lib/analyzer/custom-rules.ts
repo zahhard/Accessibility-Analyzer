@@ -1,9 +1,18 @@
 import type { Page } from "playwright";
-import type { AnalyzerNode, AnalyzerViolation, Severity } from "./types";
+import type {
+  AnalyzerNode,
+  AnalyzerPass,
+  AnalyzerViolation,
+  Severity,
+} from "./types";
 
-export async function runCustomRules(page: Page): Promise<AnalyzerViolation[]> {
+export async function runCustomRules(page: Page): Promise<{
+  violations: AnalyzerViolation[];
+  positivePoints: AnalyzerPass[];
+}> {
   const findings = await page.evaluate(() => {
     type Finding = Omit<AnalyzerViolation, "source">;
+    type PositivePoint = Omit<AnalyzerPass, "source">;
     const node = (
       target: string,
       element: Element,
@@ -18,6 +27,7 @@ export async function runCustomRules(page: Page): Promise<AnalyzerViolation[]> {
         ? `#${CSS.escape(element.id)}`
         : `${element.tagName.toLowerCase()}${element.classList.length ? `.${CSS.escape(element.classList[0])}` : `:nth-of-type(${index + 1})`}`;
     const results: Finding[] = [];
+    const positivePoints: PositivePoint[] = [];
     const add = (finding: Omit<Finding, "nodes">, nodes: AnalyzerNode[]) =>
       results.push({ ...finding, nodes });
     const html = document.documentElement;
@@ -40,6 +50,37 @@ export async function runCustomRules(page: Page): Promise<AnalyzerViolation[]> {
       fixSuggestion,
       helpUrl,
     });
+    const addPositive = (
+      id: string,
+      title: string,
+      description: string,
+      wcag: string[] = [],
+      helpUrl?: string,
+    ) =>
+      positivePoints.push({
+        id,
+        wcag,
+        title,
+        description,
+        helpUrl,
+      });
+
+    if (html.getAttribute("lang")?.trim())
+      addPositive(
+        "html-lang",
+        "زبان صفحه مشخص شده است",
+        "زبان اصلی صفحه برای فناوری‌های کمکی مشخص شده است.",
+        ["3.1.1"],
+        "https://www.w3.org/WAI/WCAG22/Understanding/language-of-page.html",
+      );
+    if (document.title.trim())
+      addPositive(
+        "page-title",
+        "صفحه عنوان توصیفی دارد",
+        "عنوان صفحه برای شناسایی موضوع آن وجود دارد.",
+        ["2.4.2"],
+        "https://www.w3.org/WAI/WCAG22/Understanding/page-titled.html",
+      );
 
     if (!html.getAttribute("lang"))
       add(
@@ -86,6 +127,13 @@ export async function runCustomRules(page: Page): Promise<AnalyzerViolation[]> {
         [node("head", document.head, "عنوان صفحه خالی یا غایب است.")],
       );
     const headings = [...document.querySelectorAll("h1,h2,h3,h4,h5,h6")];
+    if (document.querySelector("h1"))
+      addPositive(
+        "page-h1",
+        "صفحه Heading اصلی دارد",
+        "یک heading سطح اول برای ساختار محتوای صفحه پیدا شد.",
+        ["1.3.1"],
+      );
     if (!document.querySelector("h1"))
       add(
         basic(
@@ -139,7 +187,16 @@ export async function runCustomRules(page: Page): Promise<AnalyzerViolation[]> {
           ],
         );
     });
-    document.querySelectorAll("img").forEach((item, i) => {
+    const images = [...document.querySelectorAll("img")];
+    if (images.length && images.every((item) => item.hasAttribute("alt")))
+      addPositive(
+        "image-alt",
+        "تصاویر ویژگی متن جایگزین دارند",
+        "همه تصاویر صفحه ویژگی alt دارند؛ معنادار بودن متن‌ها همچنان نیازمند بررسی انسانی است.",
+        ["1.1.1"],
+        "https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html",
+      );
+    images.forEach((item, i) => {
       if (!item.hasAttribute("alt"))
         add(
           basic(
@@ -245,7 +302,42 @@ export async function runCustomRules(page: Page): Promise<AnalyzerViolation[]> {
           [node(selector(item, i), item, "کنترل فرم برچسب ندارد.")],
         );
     });
-    document.querySelectorAll("button,[role=button]").forEach((item, i) => {
+    const formControls = [...document.querySelectorAll("input,select,textarea")];
+    if (
+      formControls.length &&
+      formControls.every(
+        (item) =>
+          item.hasAttribute("aria-label") ||
+          item.hasAttribute("aria-labelledby") ||
+          (!!item.id &&
+            !!document.querySelector(`label[for="${CSS.escape(item.id)}"]`)),
+      )
+    )
+      addPositive(
+        "form-control-name",
+        "کنترل‌های فرم برچسب قابل دسترس دارند",
+        "برای همه کنترل‌های فرم، accessible name پیدا شد.",
+        ["1.3.1", "4.1.2"],
+      );
+    const buttons = [...document.querySelectorAll("button,[role=button]")];
+    if (
+      buttons.length &&
+      buttons.every((item) =>
+        (
+          item.getAttribute("aria-label") ||
+          item.getAttribute("aria-labelledby") ||
+          item.textContent ||
+          ""
+        ).trim(),
+      )
+    )
+      addPositive(
+        "button-name",
+        "دکمه‌ها نام قابل دسترس دارند",
+        "برای همه دکمه‌ها و عناصر دارای role=button نام قابل دسترس پیدا شد.",
+        ["4.1.2"],
+      );
+    buttons.forEach((item, i) => {
       const name = (
         item.getAttribute("aria-label") ||
         item.getAttribute("aria-labelledby") ||
@@ -299,7 +391,16 @@ export async function runCustomRules(page: Page): Promise<AnalyzerViolation[]> {
           [node(selector(item, i), item, "عنصر div یا span کلیک‌پذیر است.")],
         ),
       );
-    return results;
+    return { findings: results, positivePoints };
   });
-  return findings.map((finding) => ({ ...finding, source: "custom" as const }));
+  return {
+    violations: findings.findings.map((finding) => ({
+      ...finding,
+      source: "custom" as const,
+    })),
+    positivePoints: findings.positivePoints.map((point) => ({
+      ...point,
+      source: "custom" as const,
+    })),
+  };
 }
