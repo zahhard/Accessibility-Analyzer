@@ -17,7 +17,7 @@ export function ViewportSummary({ reports }: { reports: ViewportReport[] }) {
             نمایش‌های بررسی‌شده
           </p>
           <h2 className="mt-1 font-bold text-slate-900">
-            نتیجه در هر اندازه صفحه
+            نتیجه در هر اندازه و حالت رنگی
           </h2>
         </div>
         <span className="text-xs text-slate-500">
@@ -29,7 +29,7 @@ export function ViewportSummary({ reports }: { reports: ViewportReport[] }) {
           const Icon = viewportIcons[report.viewport.id];
           return (
             <article
-              key={report.viewport.id}
+              key={`${report.viewport.id}-${report.colorScheme}`}
               className="rounded-xl border border-slate-200 bg-slate-50 p-4"
             >
               <div className="flex items-center justify-between">
@@ -41,7 +41,7 @@ export function ViewportSummary({ reports }: { reports: ViewportReport[] }) {
                 </span>
               </div>
               <p className="mt-3 text-sm font-bold text-slate-800">
-                {report.viewport.name}
+                {report.viewport.name} · {report.colorScheme === "dark" ? "تاریک" : "روشن"}
               </p>
               <p className="mt-1 text-xs text-slate-500">
                 {report.viewport.width} × {report.viewport.height} ·{" "}

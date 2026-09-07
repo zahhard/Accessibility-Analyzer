@@ -3,6 +3,7 @@ export type ApiErrorCode =
   | "INVALID_URL"
   | "BLOCKED_URL"
   | "RATE_LIMITED"
+  | "ANTI_BOT_BLOCKED"
   | "PAGE_LOAD_FAILED"
   | "ANALYSIS_TIMEOUT"
   | "ANALYSIS_FAILED"

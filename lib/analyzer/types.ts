@@ -1,6 +1,7 @@
 export type Severity = "critical" | "serious" | "moderate" | "minor";
 export type ViolationSource = "axe-core" | "custom";
 export type ViewportId = "mobile" | "tablet" | "desktop";
+export type ColorScheme = "light" | "dark";
 export interface ViewportDefinition {
   id: ViewportId;
   name: string;
@@ -30,6 +31,7 @@ export interface AnalyzerViolation {
   nodes: AnalyzerNode[];
   fixSuggestion: string;
   viewportId?: ViewportId;
+  colorScheme?: ColorScheme;
 }
 export interface AnalyzerPass {
   id: string;
@@ -39,6 +41,7 @@ export interface AnalyzerPass {
   description: string;
   helpUrl?: string;
   viewportId?: ViewportId;
+  colorScheme?: ColorScheme;
 }
 export interface AnalysisSummary {
   totalIssues: number;
@@ -49,6 +52,7 @@ export interface AnalysisSummary {
 }
 export interface ViewportReport {
   viewport: ViewportDefinition;
+  colorScheme: ColorScheme;
   score: number;
   scoreLabel: string;
   issueCount: number;

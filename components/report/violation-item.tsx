@@ -23,7 +23,8 @@ export function ViolationItem({ violation }: { violation: AnalyzerViolation }) {
             {violation.title}
           </span>
           <span className="mt-2 block text-xs text-slate-500">
-            {violation.id} · {violation.source} · {violation.impact}
+            {violation.id} · {violation.source} · {violation.impact} · حالت{" "}
+            {violation.colorScheme === "dark" ? "تاریک" : "روشن"}
           </span>
         </span>
         <ChevronDown

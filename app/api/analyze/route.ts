@@ -10,6 +10,7 @@ import type {
   AnalyzerPass,
   ViewportId,
   ViewportReport,
+  ColorScheme,
 } from "@/lib/analyzer/types";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { createAnalysisRecord, ownerCookieName } from "@/lib/export/store";
@@ -46,6 +47,21 @@ function errorDetails(error: unknown) {
     return `مرورگر نتوانست صفحه را بارگذاری کند (${error.message}).`;
   return `مرورگر هنگام بارگذاری صفحه خطا داد (${error.message}).`;
 }
+
+async function detectAntiBotPage(page: import("playwright").Page) {
+  const content = await page.evaluate(() =>
+    `${document.title}\n${document.body?.innerText ?? ""}`.toLowerCase(),
+  );
+  const indicators = [
+    "just a moment",
+    "checking your browser",
+    "verify you are human",
+    "enable javascript and cookies to continue",
+    "attention required! | cloudflare",
+    "ray id",
+  ];
+  return indicators.find((indicator) => content.includes(indicator));
+}
 function browserPaths() {
   const configured = process.env.CHROME_PATH?.trim();
   if (configured) return [configured];
@@ -61,29 +77,44 @@ async function attachNodeScreenshots(
   page: import("playwright").Page,
   violations: AnalyzerViolation[],
 ) {
-  await Promise.all(
-    violations.map(async (violation) => {
-      await Promise.all(
-        violation.nodes.map(async (node) => {
-          const selector = node.target[0];
-          if (!selector) return;
+  for (const violation of violations) {
+    for (const node of violation.nodes) {
+      for (const selector of node.target) {
+        if (!selector) continue;
+        try {
+          const element = page.locator(selector).first();
+          await element.waitFor({ state: "visible", timeout: 1_000 });
+          await element.scrollIntoViewIfNeeded({ timeout: 2_000 });
+          let image: Buffer;
           try {
-            const element = page.locator(selector).first();
-            await element.scrollIntoViewIfNeeded({ timeout: 2_000 });
-            const image = await element.screenshot({
+            image = await element.screenshot({
               type: "jpeg",
               quality: 60,
               animations: "disabled",
             });
-            node.screenshot = `data:image/jpeg;base64,${image.toString("base64")}`;
           } catch {
-            // Some axe selectors point into shadow DOM or to an element that
-            // disappeared after the scan; the textual finding remains available.
+            const box = await element.boundingBox();
+            if (!box || box.width < 1 || box.height < 1) continue;
+            image = await page.screenshot({
+              type: "jpeg",
+              quality: 60,
+              clip: {
+                x: Math.max(0, box.x),
+                y: Math.max(0, box.y),
+                width: Math.min(box.width, 1600),
+                height: Math.min(box.height, 1200),
+              },
+            });
           }
-        }),
-      );
-    }),
-  );
+          node.screenshot = `data:image/jpeg;base64,${image.toString("base64")}`;
+          break;
+        } catch {
+          // Try the next selector. The textual finding remains available if
+          // the element is dynamic or disappears after the scan.
+        }
+      }
+    }
+  }
 }
 
 async function launchBrowser() {
@@ -151,10 +182,13 @@ export async function POST(request: NextRequest) {
     const selectedViewports = [
       ...new Set(parsed.data.viewportIds),
     ] as ViewportId[];
-    for (const viewportId of selectedViewports) {
+    const colorSchemes: ColorScheme[] = ["light", "dark"];
+    for (const colorScheme of colorSchemes) {
+      for (const viewportId of selectedViewports) {
       const viewport = viewportDefinitions[viewportId];
       const context = await browser.newContext({
         viewport: { width: viewport.width, height: viewport.height },
+        colorScheme,
         acceptDownloads: false,
       });
       try {
@@ -188,7 +222,25 @@ export async function POST(request: NextRequest) {
             "بارگذاری صفحه با خطا مواجه شد.",
             502,
           );
-        await page.waitForTimeout(500);
+        // Give client-side applications and anti-bot challenges time to finish
+        // before inspecting the DOM. A challenge page must never become a
+        // misleading accessibility report.
+        await page.waitForTimeout(1_500);
+        await page.waitForLoadState("networkidle", { timeout: 4_000 }).catch(() => undefined);
+        const antiBotIndicator = await detectAntiBotPage(page);
+        if (antiBotIndicator) {
+          console.warn("anti_bot_page_detected", {
+            viewportId,
+            indicator: antiBotIndicator,
+            url: page.url(),
+          });
+          return errorResponse(
+            "ANTI_BOT_BLOCKED",
+            "صفحه توسط سیستم ضدربات یا Cloudflare قابل دسترسی نیست.",
+            502,
+            "به‌جای کد اصلی سایت، صفحه‌ی بررسی امنیتی دریافت شد. تحلیل را پس از رفع چالش یا با دسترسی مجاز دوباره انجام دهید.",
+          );
+        }
         const custom = await runCustomRules(page);
         let axe: {
           violations: AnalyzerViolation[];
@@ -208,7 +260,7 @@ export async function POST(request: NextRequest) {
           });
         }
         const viewportViolations = [...axe.violations, ...custom.violations].map(
-          (violation) => ({ ...violation, viewportId }),
+          (violation) => ({ ...violation, viewportId, colorScheme }),
         );
         await attachNodeScreenshots(page, viewportViolations);
         const viewportPositivePoints = [
@@ -217,6 +269,7 @@ export async function POST(request: NextRequest) {
         ].map((point) => ({
           ...point,
           viewportId,
+          colorScheme,
         }));
         const viewportReport = buildReport(
           analysisId,
@@ -233,6 +286,7 @@ export async function POST(request: NextRequest) {
         positivePoints.push(...viewportPositivePoints);
         viewportReports.push({
           viewport,
+          colorScheme,
           score: viewportReport.score,
           scoreLabel: viewportReport.scoreLabel,
           issueCount: viewportViolations.length,
@@ -245,6 +299,7 @@ export async function POST(request: NextRequest) {
         pageTitle ||= await page.title();
       } finally {
         await context.close();
+      }
       }
     }
     const report = buildReport(

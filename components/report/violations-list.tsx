@@ -24,9 +24,9 @@ export function ViolationsList({ report }: { report: AnalysisReport }) {
       ),
     [filter, query, report.violations, viewport],
   );
-  const selectedViewports = report.viewportReports.map(
-    (item) => item.viewport.id,
-  );
+  const selectedViewports = [
+    ...new Set(report.viewportReports.map((item) => item.viewport.id)),
+  ];
   const hasFilters = Boolean(query || filter !== "all" || viewport !== "all");
   const resetFilters = () => {
     setQuery("");
