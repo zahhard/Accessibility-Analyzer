@@ -16,6 +16,7 @@ export interface AnalyzerNode {
   target: string[];
   html: string;
   failureSummary: string;
+  screenshot?: string;
 }
 export interface AnalyzerViolation {
   id: string;

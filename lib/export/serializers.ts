@@ -44,7 +44,7 @@ function issueJson(issue: AnalyzerViolation) {
       target: node.target.map((target) => safeText(target, 500)),
       html: safeText(node.html),
       failureSummary: safeText(node.failureSummary),
-      screenshotAvailable: false,
+      screenshotAvailable: Boolean(node.screenshot),
     })),
   };
 }
@@ -123,7 +123,7 @@ export function createCsv(report: AnalysisReport) {
         node.target.join(", "),
         node.html,
         node.failureSummary,
-        false,
+        Boolean(node.screenshot),
       ]
         .map(csvCell)
         .join(","),

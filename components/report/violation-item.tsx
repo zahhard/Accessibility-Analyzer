@@ -64,6 +64,18 @@ export function ViolationItem({ violation }: { violation: AnalyzerViolation }) {
                 <pre className="ltr mt-2 max-h-28 overflow-auto whitespace-pre-wrap break-all rounded bg-white p-2 text-xs text-slate-600">
                   {node.html}
                 </pre>
+                {node.screenshot && (
+                  <div className="mt-3">
+                    <p className="mb-1 text-xs font-bold text-slate-600">
+                      تصویر عنصر مشکل‌دار
+                    </p>
+                    <img
+                      src={node.screenshot}
+                      alt={`تصویر عنصر دارای ایراد: ${node.target.join(", ")}`}
+                      className="max-h-72 w-full rounded border border-slate-200 bg-white object-contain object-top"
+                    />
+                  </div>
+                )}
                 <p className="mt-2 text-xs text-slate-500">
                   {node.failureSummary}
                 </p>

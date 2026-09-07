@@ -57,6 +57,35 @@ function browserPaths() {
   ].filter((path) => path === undefined || existsSync(path));
 }
 
+async function attachNodeScreenshots(
+  page: import("playwright").Page,
+  violations: AnalyzerViolation[],
+) {
+  await Promise.all(
+    violations.map(async (violation) => {
+      await Promise.all(
+        violation.nodes.map(async (node) => {
+          const selector = node.target[0];
+          if (!selector) return;
+          try {
+            const element = page.locator(selector).first();
+            await element.scrollIntoViewIfNeeded({ timeout: 2_000 });
+            const image = await element.screenshot({
+              type: "jpeg",
+              quality: 60,
+              animations: "disabled",
+            });
+            node.screenshot = `data:image/jpeg;base64,${image.toString("base64")}`;
+          } catch {
+            // Some axe selectors point into shadow DOM or to an element that
+            // disappeared after the scan; the textual finding remains available.
+          }
+        }),
+      );
+    }),
+  );
+}
+
 async function launchBrowser() {
   let lastError: unknown;
   for (const executablePath of browserPaths()) {
@@ -181,6 +210,7 @@ export async function POST(request: NextRequest) {
         const viewportViolations = [...axe.violations, ...custom.violations].map(
           (violation) => ({ ...violation, viewportId }),
         );
+        await attachNodeScreenshots(page, viewportViolations);
         const viewportPositivePoints = [
           ...axe.positivePoints,
           ...custom.positivePoints,

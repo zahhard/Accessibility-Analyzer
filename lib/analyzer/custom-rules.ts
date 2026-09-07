@@ -73,6 +73,13 @@ export async function runCustomRules(page: Page): Promise<{
         ["3.1.1"],
         "https://www.w3.org/WAI/WCAG22/Understanding/language-of-page.html",
       );
+    if (["ltr", "rtl"].includes(html.getAttribute("dir") ?? ""))
+      addPositive(
+        "html-dir",
+        "جهت متن صفحه مشخص شده است",
+        "جهت نوشتار صفحه با ویژگی dir مشخص شده است.",
+        [],
+      );
     if (document.title.trim())
       addPositive(
         "page-title",
@@ -132,6 +139,20 @@ export async function runCustomRules(page: Page): Promise<{
         "page-h1",
         "صفحه Heading اصلی دارد",
         "یک heading سطح اول برای ساختار محتوای صفحه پیدا شد.",
+        ["1.3.1"],
+      );
+    if (
+      headings.length &&
+      headings.every((item, i) => {
+        const current = Number(item.tagName.slice(1));
+        const previous = i ? Number(headings[i - 1].tagName.slice(1)) : current;
+        return current <= previous + 1;
+      })
+    )
+      addPositive(
+        "heading-order",
+        "ترتیب Headingها منطقی است",
+        "در ترتیب سطح headingهای صفحه پرش غیرمنطقی پیدا نشد.",
         ["1.3.1"],
       );
     if (!document.querySelector("h1"))
@@ -280,8 +301,73 @@ export async function runCustomRules(page: Page): Promise<{
               "target=_blank بدون rel=noopener است.",
             ),
           ],
-        );
+      );
     });
+    const links = [...document.querySelectorAll("a")];
+    const namedLinks = links.filter(
+      (item) =>
+        (item.getAttribute("aria-label") || item.textContent || "").trim(),
+    );
+    if (links.length && namedLinks.length === links.length)
+      addPositive(
+        "link-name",
+        "لینک‌ها نام قابل دسترس دارند",
+        "برای همه لینک‌های صفحه نام قابل دسترس پیدا شد.",
+        ["2.4.4", "4.1.2"],
+      );
+
+    const ids = [...document.querySelectorAll("[id]")].map((item) => item.id);
+    if (ids.length && new Set(ids).size === ids.length)
+      addPositive(
+        "unique-id",
+        "شناسه‌های HTML تکراری نیستند",
+        "شناسه‌ی تکراری در عناصر صفحه پیدا نشد.",
+        ["4.1.2"],
+      );
+
+    if (document.querySelector("main"))
+      addPositive(
+        "main-landmark",
+        "ناحیه‌ی اصلی صفحه مشخص است",
+        "یک عنصر main برای تشخیص محتوای اصلی صفحه وجود دارد.",
+        ["1.3.1"],
+      );
+    if (document.querySelector("nav"))
+      addPositive(
+        "navigation-landmark",
+        "ناحیه‌ی پیمایش صفحه مشخص است",
+        "یک ناحیه‌ی nav برای دسترسی به پیوندهای پیمایش وجود دارد.",
+        ["1.3.1"],
+      );
+
+    if (document.querySelector('meta[name="viewport"]'))
+      addPositive(
+        "viewport-meta",
+        "تنظیمات viewport وجود دارد",
+        "صفحه تنظیمات viewport برای نمایش مناسب در اندازه‌های مختلف دارد.",
+        ["1.4.10"],
+      );
+
+    const iframes = [...document.querySelectorAll("iframe")];
+    if (
+      iframes.length &&
+      iframes.every((item) => item.getAttribute("title")?.trim())
+    )
+      addPositive(
+        "iframe-title",
+        "Frameها عنوان قابل دسترس دارند",
+        "برای همه iframeهای صفحه عنوان قابل دسترس پیدا شد.",
+        ["4.1.2"],
+      );
+
+    const tables = [...document.querySelectorAll("table")];
+    if (tables.length && tables.every((table) => table.querySelector("th")))
+      addPositive(
+        "table-header",
+        "جدول‌ها سرستون دارند",
+        "برای همه جدول‌های صفحه حداقل یک سرستون th پیدا شد.",
+        ["1.3.1"],
+      );
     document.querySelectorAll("input,select,textarea").forEach((item, i) => {
       const labeled =
         item.hasAttribute("aria-label") ||
