@@ -67,26 +67,3 @@ ALLOW_PRIVATE_URLS=false docker compose up -d --build
 URLهای HTTP/HTTPS مجازند و مقصدهای خصوصی نیز به‌صورت پیش‌فرض پذیرفته می‌شوند. با `ALLOW_PRIVATE_URLS=false`، localhost، IPهای خصوصی، loopback، link-local، multicast، unspecified و مقصدهای DNS خصوصی رد می‌شوند. username/password همچنان در URL مجاز نیست. تحلیل خودکار نمی‌تواند قضاوت انسانی درباره معنای alt، تجربه شناختی، همه رفتارهای keyboard یا انطباق نهایی را جایگزین کند.
 
 rate limit فعلی برای MVP حافظه‌ای است و برای multi-instance production کافی نیست؛ در production باید Redis یا store توزیع‌شده جایگزین شود. از تحلیل سامانه‌های خصوصی یا بدون اجازه خودداری کنید.
-
-## دیپلوی خودکار روی VPS با GitHub Actions
-
-روی VPS، Docker و Docker Compose را نصب و مخزن را یک‌بار آماده کنید:
-
-```bash
-sudo mkdir -p /opt/accessibility-analyzer
-sudo chown "$USER":"$USER" /opt/accessibility-analyzer
-git clone https://github.com/zahhard/Accessibility-Analyzer.git /opt/accessibility-analyzer
-cd /opt/accessibility-analyzer
-docker compose up -d --build
-```
-
-برای resolve دامنه‌های عمومی، سرویس Docker از DNSهای `1.1.1.1` و `8.8.8.8` استفاده می‌کند. اگر فایروال سرور دسترسی DNS روی پورت ۵۳ را مسدود کرده است، ابتدا آن را باز کنید.
-
-سپس در `Settings > Secrets and variables > Actions` مخزن GitHub، این Repository Secretها را بسازید:
-
-- `SERVER_HOST`: IP یا hostname سرور
-- `SERVER_USER`: کاربر SSH دارای دسترسی اجرای Docker
-- `SERVER_SSH_KEY`: کلید خصوصی SSH مربوط به کاربر بالا
-- `SERVER_PORT`: پورت SSH؛ اختیاری و پیش‌فرض `22`
-
-در صورت استفاده از مسیری غیر از `/opt/accessibility-analyzer`، یک Repository Variable با نام `APP_PATH` بسازید. فایل `.github/workflows/deploy.yml` پس از هر push روی شاخه `main`، آخرین commit را روی VPS دریافت و کانتینر را بازسازی می‌کند. برنامه به‌صورت پیش‌فرض فقط روی `127.0.0.1:3000` در دسترس است و باید با Nginx یا یک reverse proxy مشابه به دامنه متصل شود.
