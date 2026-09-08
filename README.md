@@ -76,4 +76,4 @@ npm start
 
 URLهای `http` و `https` پذیرفته می‌شوند و username/password در URL مجاز نیست. rate limit فعلی برای MVP حافظه‌ای است و برای multi-instance production کافی نیست؛ در production باید Redis یا store توزیع‌شده جایگزین شود. از تحلیل سامانه‌های خصوصی یا بدون اجازه خودداری کنید.
 
-</div>
+rate limit فعلی برای MVP حافظه‌ای است و برای multi-instance production کافی نیست؛ در production باید Redis یا store توزیع‌شده جایگزین شود. از تحلیل سامانه‌های خصوصی یا بدون اجازه خودداری کنید.
