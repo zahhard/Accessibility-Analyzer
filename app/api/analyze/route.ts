@@ -59,6 +59,9 @@ async function detectAntiBotPage(page: import("playwright").Page) {
     "enable javascript and cookies to continue",
     "attention required! | cloudflare",
     "ray id",
+    "403 forbidden",
+    "access denied",
+    "دسترسی ممنوع",
   ];
   return indicators.find((indicator) => content.includes(indicator));
 }
@@ -77,8 +80,22 @@ async function attachNodeScreenshots(
   page: import("playwright").Page,
   violations: AnalyzerViolation[],
 ) {
+  let fallbackScreenshot: string | undefined;
+  const getFallbackScreenshot = async () => {
+    if (!fallbackScreenshot) {
+      const image = await page.screenshot({
+        type: "jpeg",
+        quality: 45,
+        fullPage: false,
+      });
+      fallbackScreenshot = `data:image/jpeg;base64,${image.toString("base64")}`;
+    }
+    return fallbackScreenshot;
+  };
+
   for (const violation of violations) {
     for (const node of violation.nodes) {
+      let captured = false;
       for (const selector of node.target) {
         if (!selector) continue;
         try {
@@ -107,10 +124,19 @@ async function attachNodeScreenshots(
             });
           }
           node.screenshot = `data:image/jpeg;base64,${image.toString("base64")}`;
+          captured = true;
           break;
         } catch {
           // Try the next selector. The textual finding remains available if
           // the element is dynamic or disappears after the scan.
+        }
+      }
+      if (!captured) {
+        try {
+          node.screenshot = await getFallbackScreenshot();
+          node.screenshotFallback = true;
+        } catch {
+          // Keep the textual finding if the browser cannot capture images.
         }
       }
     }
@@ -222,6 +248,14 @@ export async function POST(request: NextRequest) {
             "بارگذاری صفحه با خطا مواجه شد.",
             502,
           );
+        if (loaded?.status() === 401 || loaded?.status() === 403) {
+          return errorResponse(
+            "ANTI_BOT_BLOCKED",
+            "سایت دسترسی تحلیل‌گر را رد کرد.",
+            502,
+            `سرور سایت پاسخ HTTP ${loaded.status()} برگرداند؛ بنابراین screenshotها مربوط به صفحه‌ی خطا هستند، نه محتوای اصلی سایت.`,
+          );
+        }
         // Give client-side applications and anti-bot challenges time to finish
         // before inspecting the DOM. A challenge page must never become a
         // misleading accessibility report.

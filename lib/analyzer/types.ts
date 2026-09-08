@@ -18,6 +18,7 @@ export interface AnalyzerNode {
   html: string;
   failureSummary: string;
   screenshot?: string;
+  screenshotFallback?: boolean;
 }
 export interface AnalyzerViolation {
   id: string;

@@ -68,7 +68,9 @@ export function ViolationItem({ violation }: { violation: AnalyzerViolation }) {
                 {node.screenshot && (
                   <div className="mt-3">
                     <p className="mb-1 text-xs font-bold text-slate-600">
-                      تصویر عنصر مشکل‌دار
+                      {node.screenshotFallback
+                        ? "تصویر viewport (crop عنصر ممکن نبود)"
+                        : "تصویر عنصر مشکل‌دار"}
                     </p>
                     <img
                       src={node.screenshot}
