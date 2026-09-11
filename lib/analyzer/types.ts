@@ -60,6 +60,16 @@ export interface ViewportReport {
   passesCount: number;
   incompleteCount: number;
 }
+export interface AxeCoreReport {
+  viewportId: ViewportId;
+  colorScheme: ColorScheme;
+  result: {
+    violations: unknown[];
+    passes: unknown[];
+    incomplete: unknown[];
+    inapplicable: unknown[];
+  };
+}
 export interface AnalysisReport {
   analysisId: string;
   url: string;
@@ -73,4 +83,5 @@ export interface AnalysisReport {
   passesCount: number;
   incompleteCount: number;
   viewportReports: ViewportReport[];
+  axeCoreReports: AxeCoreReport[];
 }

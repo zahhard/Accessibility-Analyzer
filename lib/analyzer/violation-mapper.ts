@@ -4,6 +4,7 @@ import type {
   AnalyzerPass,
   Severity,
   ViewportReport,
+  AxeCoreReport,
 } from "./types";
 import { calculateScore } from "./score-calculator";
 export function buildReport(
@@ -15,6 +16,7 @@ export function buildReport(
   passesCount: number,
   incompleteCount: number,
   viewportReports: ViewportReport[] = [],
+  axeCoreReports: AxeCoreReport[] = [],
 ): AnalysisReport {
   const summary = (
     ["critical", "serious", "moderate", "minor"] as Severity[]
@@ -42,5 +44,6 @@ export function buildReport(
     passesCount,
     incompleteCount,
     viewportReports,
+    axeCoreReports,
   };
 }

@@ -46,5 +46,11 @@ export async function runAxe(page: Page) {
     positivePoints,
     passesCount: result.passes.length,
     incompleteCount: result.incomplete.length,
+    rawResult: {
+      violations: result.violations,
+      passes: result.passes,
+      incomplete: result.incomplete,
+      inapplicable: result.inapplicable,
+    },
   };
 }

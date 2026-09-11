@@ -10,6 +10,7 @@ import { ViewportSummary } from "@/components/report/viewport-summary";
 import { ExportDialog } from "@/components/report/export-dialog";
 import { ViolationsList } from "@/components/report/violations-list";
 import { PositivePoints } from "@/components/report/positive-points";
+import { AxeRawReport } from "@/components/report/axe-raw-report";
 import type { AnalysisReport } from "@/lib/analyzer/types";
 export default function ReportPage() {
   const [report, setReport] = useState<AnalysisReport | null>(null);
@@ -135,6 +136,7 @@ export default function ReportPage() {
           <SummaryCards report={report} />
         </section>
         <ViewportSummary reports={report.viewportReports} />
+        <AxeRawReport report={report} />
         <PositivePoints report={report} />
         <ViolationsList report={report} />
       </main>

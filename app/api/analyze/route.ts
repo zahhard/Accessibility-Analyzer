@@ -11,6 +11,7 @@ import type {
   ViewportId,
   ViewportReport,
   ColorScheme,
+  AxeCoreReport,
 } from "@/lib/analyzer/types";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { createAnalysisRecord, ownerCookieName } from "@/lib/export/store";
@@ -201,6 +202,7 @@ export async function POST(request: NextRequest) {
     const violations: AnalyzerViolation[] = [];
     const positivePoints: AnalyzerPass[] = [];
     const viewportReports: ViewportReport[] = [];
+    const axeCoreReports: AxeCoreReport[] = [];
     let pageTitle = "";
     let finalUrl = validated.toString();
     let passesCount = 0;
@@ -281,7 +283,19 @@ export async function POST(request: NextRequest) {
           positivePoints: AnalyzerPass[];
           passesCount: number;
           incompleteCount: number;
-        } = { violations: [], positivePoints: [], passesCount: 0, incompleteCount: 1 };
+          rawResult: AxeCoreReport["result"];
+        } = {
+          violations: [],
+          positivePoints: [],
+          passesCount: 0,
+          incompleteCount: 1,
+          rawResult: {
+            violations: [],
+            passes: [],
+            incomplete: [],
+            inapplicable: [],
+          },
+        };
         try {
           axe = await runAxe(page);
           console.log("axe", axe);
@@ -305,6 +319,11 @@ export async function POST(request: NextRequest) {
           viewportId,
           colorScheme,
         }));
+        axeCoreReports.push({
+          viewportId,
+          colorScheme,
+          result: axe.rawResult,
+        });
         const viewportReport = buildReport(
           analysisId,
           redirectedUrl.toString(),
@@ -345,6 +364,7 @@ export async function POST(request: NextRequest) {
       passesCount,
       incompleteCount,
       viewportReports,
+      axeCoreReports,
     );
     const ownerKey =
       request.cookies.get(ownerCookieName)?.value ?? randomUUID();
