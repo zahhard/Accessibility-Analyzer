@@ -65,8 +65,9 @@ export function UrlAnalyzerForm() {
       { url: values.url, viewportIds },
       {
         onSuccess: (data) => {
-          sessionStorage.setItem("accessibility-report", JSON.stringify(data));
-          router.push("/report");
+          // The complete axe-core response can exceed browser storage limits.
+          // It is already retained server-side and protected by the owner cookie.
+          router.push(`/report?analysisId=${encodeURIComponent(data.analysisId)}`);
         },
       },
     );

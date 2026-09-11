@@ -278,34 +278,21 @@ export async function POST(request: NextRequest) {
           );
         }
         const custom = await runCustomRules(page);
-        let axe: {
-          violations: AnalyzerViolation[];
-          positivePoints: AnalyzerPass[];
-          passesCount: number;
-          incompleteCount: number;
-          rawResult: AxeCoreReport["result"];
-        } = {
-          violations: [],
-          positivePoints: [],
-          passesCount: 0,
-          incompleteCount: 1,
-          rawResult: {
-            violations: [],
-            passes: [],
-            incomplete: [],
-            inapplicable: [],
-          },
-        };
+        let axe: Awaited<ReturnType<typeof runAxe>>;
         try {
           axe = await runAxe(page);
-          console.log("axe", axe);
-          
         } catch (error) {
           console.error("axe_failed", {
             duration: Date.now() - started,
             viewportId,
             error,
           });
+          return errorResponse(
+            "ANALYSIS_FAILED",
+            "اجرای موتور تحلیل axe-core ناموفق بود.",
+            500,
+            error instanceof Error ? error.message : "خطای ناشناخته در axe-core رخ داد.",
+          );
         }
         const viewportViolations = [...axe.violations, ...custom.violations].map(
           (violation) => ({ ...violation, viewportId, colorScheme }),
@@ -333,8 +320,6 @@ export async function POST(request: NextRequest) {
           axe.passesCount,
           axe.incompleteCount,
         );
-        console.log("viewportReport", viewportReport);
-        
         violations.push(...viewportViolations);
         positivePoints.push(...viewportPositivePoints);
         viewportReports.push({

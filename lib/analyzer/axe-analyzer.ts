@@ -1,7 +1,18 @@
 import "server-only";
-import { AxeBuilder } from "@axe-core/playwright";
+import axeCore from "axe-core";
+import type { AxeResults } from "axe-core";
 import type { Page } from "playwright";
 import type { AnalyzerPass, AnalyzerViolation, Severity } from "./types";
+
+const axeTags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
+// axe-core exposes a browser-ready source string. Defining `module` locally
+// avoids the CommonJS reference error seen when Playwright evaluates it in a
+// browser context, without relying on a node_modules path at runtime.
+const axeCoreSource = `var module;${axeCore.source}`;
+
+interface AxeBrowserApi {
+  run(context: Document, options: unknown): Promise<AxeResults>;
+}
 
 function wcagTags(tags: string[]) {
   return tags
@@ -13,9 +24,17 @@ function wcagTags(tags: string[]) {
 }
 
 export async function runAxe(page: Page) {
-  const result = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
-    .analyze();
+  // Do not use a node_modules file path here: Turbopack rewrites it in the
+  // production server bundle. Evaluate the package-provided browser source.
+  await page.evaluate(axeCoreSource);
+  const result = await page.evaluate(async (tags): Promise<AxeResults> => {
+    const axe = (window as Window & { axe?: AxeBrowserApi }).axe;
+    if (!axe)
+      throw new Error("اسکریپت axe-core در صفحه بارگذاری نشد.");
+    return axe.run(document, {
+      runOnly: { type: "tag", values: tags },
+    });
+  }, axeTags);
   const violations: AnalyzerViolation[] = result.violations.map((item) => ({
     id: item.id,
     source: "axe-core",
@@ -46,11 +65,8 @@ export async function runAxe(page: Page) {
     positivePoints,
     passesCount: result.passes.length,
     incompleteCount: result.incomplete.length,
-    rawResult: {
-      violations: result.violations,
-      passes: result.passes,
-      incomplete: result.incomplete,
-      inapplicable: result.inapplicable,
-    },
+    // Keep the library response intact so consumers of the API can use every
+    // axe-core field, not only the fields used by this application's report.
+    rawResult: result,
   };
 }

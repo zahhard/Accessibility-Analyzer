@@ -14,14 +14,27 @@ import { AxeRawReport } from "@/components/report/axe-raw-report";
 import type { AnalysisReport } from "@/lib/analyzer/types";
 export default function ReportPage() {
   const [report, setReport] = useState<AnalysisReport | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   useEffect(() => {
-    try {
-      const value = sessionStorage.getItem("accessibility-report");
-      if (value) setReport(JSON.parse(value) as AnalysisReport);
-    } catch {
-      setReport(null);
+    const analysisId = new URLSearchParams(window.location.search).get(
+      "analysisId",
+    );
+    if (!analysisId) {
+      setIsLoading(false);
+      return;
     }
+
+    fetch(`/api/analyses/${encodeURIComponent(analysisId)}`)
+      .then(async (response) => {
+        const payload = (await response.json()) as
+          | { success: true; data: AnalysisReport }
+          | { success: false };
+        if (!response.ok || !payload.success) throw new Error("NOT_FOUND");
+        setReport(payload.data);
+      })
+      .catch(() => setReport(null))
+      .finally(() => setIsLoading(false));
   }, []);
   const copyUrl = async () => {
     if (!report) return;
@@ -29,22 +42,27 @@ export default function ReportPage() {
     setCopied(true);
     window.setTimeout(() => setCopied(false), 2000);
   };
-  if (!report) return;
-  <>
-    <AppHeader />
-    <main className="mx-auto max-w-2xl px-5 py-24 text-center">
-      <h1 className="text-2xl font-black text-slate-900">
-        گزارشی برای نمایش وجود ندارد
-      </h1>
-      <p className="mt-4 text-slate-500">ابتدا یک صفحه عمومی را تحلیل کنید.</p>
-      <Link
-        href="/"
-        className="focus-ring mt-8 inline-flex items-center gap-2 rounded-lg bg-teal-700 px-5 py-3 font-bold text-white shadow-sm hover:bg-teal-800"
-      >
-        <ArrowRight size={16} /> بازگشت به صفحه اصلی
-      </Link>
-    </main>
-  </>;
+  if (isLoading) return null;
+  if (!report)
+    return (
+      <>
+        <AppHeader />
+        <main className="mx-auto max-w-2xl px-5 py-24 text-center">
+          <h1 className="text-2xl font-black text-slate-900">
+            گزارشی برای نمایش وجود ندارد
+          </h1>
+          <p className="mt-4 text-slate-500">
+            ابتدا یک صفحه عمومی را تحلیل کنید.
+          </p>
+          <Link
+            href="/"
+            className="focus-ring mt-8 inline-flex items-center gap-2 rounded-lg bg-teal-700 px-5 py-3 font-bold text-white shadow-sm hover:bg-teal-800"
+          >
+            <ArrowRight size={16} /> بازگشت به صفحه اصلی
+          </Link>
+        </main>
+      </>
+    );
   return (
     <>
       <AppHeader />

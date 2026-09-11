@@ -63,12 +63,8 @@ export interface ViewportReport {
 export interface AxeCoreReport {
   viewportId: ViewportId;
   colorScheme: ColorScheme;
-  result: {
-    violations: unknown[];
-    passes: unknown[];
-    incomplete: unknown[];
-    inapplicable: unknown[];
-  };
+  /** پاسخ کامل و بدون نگاشتِ axe-core برای این viewport و حالت رنگی. */
+  result: AxeResults;
 }
 export interface AnalysisReport {
   analysisId: string;
@@ -85,3 +81,4 @@ export interface AnalysisReport {
   viewportReports: ViewportReport[];
   axeCoreReports: AxeCoreReport[];
 }
+import type { AxeResults } from "axe-core";

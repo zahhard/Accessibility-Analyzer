@@ -1,5 +1,15 @@
 import type { AnalysisReport } from "@/lib/analyzer/types";
 
+function resultSummary(result: unknown) {
+  if (!result || typeof result !== "object") return "خروجی axe-core در این گزارش موجود نیست";
+
+  const report = result as Record<string, unknown>;
+  const count = (name: string) =>
+    Array.isArray(report[name]) ? report[name].length : 0;
+
+  return `${count("violations")} violation · ${count("passes")} pass · ${count("incomplete")} incomplete`;
+}
+
 export function AxeRawReport({ report }: { report: AnalysisReport }) {
   return (
     <section className="surface mt-5 rounded-2xl p-5">
@@ -22,7 +32,7 @@ export function AxeRawReport({ report }: { report: AnalysisReport }) {
             <summary className="cursor-pointer list-none font-bold text-slate-800">
               {item.viewportId} · {item.colorScheme === "dark" ? "تاریک" : "روشن"}
               <span className="mr-3 text-xs font-normal text-slate-500">
-                {item.result.violations.length} violation · {item.result.passes.length} pass · {item.result.incomplete.length} incomplete
+                {resultSummary(item.result)}
               </span>
             </summary>
             <pre
