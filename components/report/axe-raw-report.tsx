@@ -1,3 +1,7 @@
+"use client";
+
+import { Check, Copy } from "lucide-react";
+import { useState } from "react";
 import type { AnalysisReport } from "@/lib/analyzer/types";
 
 function resultSummary(result: unknown) {
@@ -11,6 +15,17 @@ function resultSummary(result: unknown) {
 }
 
 export function AxeRawReport({ report }: { report: AnalysisReport }) {
+  const [copiedReport, setCopiedReport] = useState<string | null>(null);
+
+  const copyResult = async (
+    key: string,
+    result: AnalysisReport["axeCoreReports"][number]["result"],
+  ) => {
+    await navigator.clipboard.writeText(JSON.stringify(result, null, 2));
+    setCopiedReport(key);
+    window.setTimeout(() => setCopiedReport(null), 2_000);
+  };
+
   return (
     <section className="surface mt-5 rounded-2xl p-5">
       <div>
@@ -35,6 +50,28 @@ export function AxeRawReport({ report }: { report: AnalysisReport }) {
                 {resultSummary(item.result)}
               </span>
             </summary>
+            <div className="mt-3 flex justify-end">
+              <button
+                type="button"
+                onClick={() =>
+                  void copyResult(
+                    `${item.viewportId}-${item.colorScheme}`,
+                    item.result,
+                  )
+                }
+                className="focus-ring inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition hover:border-teal-300 hover:text-teal-700"
+                aria-label="کپی خروجی JSON axe-core"
+              >
+                {copiedReport === `${item.viewportId}-${item.colorScheme}` ? (
+                  <Check size={14} />
+                ) : (
+                  <Copy size={14} />
+                )}
+                {copiedReport === `${item.viewportId}-${item.colorScheme}`
+                  ? "کپی شد"
+                  : "کپی JSON"}
+              </button>
+            </div>
             <pre
               dir="ltr"
               className="mt-3 max-h-[32rem] overflow-auto rounded-lg bg-slate-950 p-4 text-left text-xs leading-6 text-slate-100"
